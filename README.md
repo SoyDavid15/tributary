@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" width="72" alt="Tributary">
+
 # Tributary
 
 Payment splitting on Stellar.

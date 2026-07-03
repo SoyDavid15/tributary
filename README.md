@@ -77,6 +77,10 @@ app                  web dashboard (Vite + React, Freighter wallet)
 - Web dashboard to create and inspect splits
 - Testnet deployment, then mainnet
 
+## Docs
+
+[docs/architecture.md](docs/architecture.md) covers the storage layout, money paths, error codes and events in detail.
+
 ## Contributing
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up and what a good change looks like.

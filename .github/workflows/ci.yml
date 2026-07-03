@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  checks:
+  contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,3 +16,15 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: cargo build --release --target wasm32v1-none -p tributary-splitter
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install && npm run build
+        working-directory: sdk
+      - run: npm install && npm run build
+        working-directory: app

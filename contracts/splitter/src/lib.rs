@@ -5,6 +5,7 @@ use soroban_sdk::{
 };
 
 pub const TOTAL_SHARES: u32 = 10_000;
+pub const MAX_RECIPIENTS: u32 = 32;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -18,6 +19,7 @@ pub enum Error {
     SplitImmutable = 6,
     InvalidAmount = 7,
     NothingToDistribute = 8,
+    TooManyRecipients = 9,
 }
 
 #[contracttype]
@@ -209,6 +211,9 @@ impl Splitter {
 fn validate(recipients: &Vec<Address>, shares: &Vec<u32>) -> Result<(), Error> {
     if recipients.is_empty() {
         return Err(Error::NoRecipients);
+    }
+    if recipients.len() > MAX_RECIPIENTS {
+        return Err(Error::TooManyRecipients);
     }
     if recipients.len() != shares.len() {
         return Err(Error::LengthMismatch);

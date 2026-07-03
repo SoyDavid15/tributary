@@ -86,6 +86,23 @@ fn rejects_invalid_splits() {
 }
 
 #[test]
+fn rejects_too_many_recipients() {
+    let s = setup();
+    let creator = Address::generate(&s.env);
+    let mut recipients = vec![&s.env];
+    let mut shares = vec![&s.env];
+    for _ in 0..33 {
+        recipients.push_back(Address::generate(&s.env));
+        shares.push_back(300u32);
+    }
+
+    let result = s
+        .client
+        .try_create_split(&creator, &recipients, &shares, &None);
+    assert_eq!(result, Err(Ok(Error::TooManyRecipients)));
+}
+
+#[test]
 fn pay_distributes_by_shares() {
     let s = setup();
     let creator = Address::generate(&s.env);

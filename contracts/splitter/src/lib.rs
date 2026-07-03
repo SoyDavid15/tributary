@@ -7,6 +7,10 @@ use soroban_sdk::{
 pub const TOTAL_SHARES: u32 = 10_000;
 pub const MAX_RECIPIENTS: u32 = 32;
 
+const DAY_LEDGERS: u32 = 17_280;
+const TTL_THRESHOLD: u32 = 30 * DAY_LEDGERS;
+const TTL_EXTEND_TO: u32 = 120 * DAY_LEDGERS;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u32)]
@@ -115,6 +119,9 @@ impl Splitter {
         };
         env.storage().persistent().set(&DataKey::Split(id), &split);
         env.storage().instance().set(&DataKey::Count, &(id + 1));
+        env.storage()
+            .instance()
+            .extend_ttl(TTL_THRESHOLD, TTL_EXTEND_TO);
 
         let index_key = DataKey::Created(creator.clone());
         let mut created: Vec<u64> = env
@@ -292,10 +299,16 @@ fn payout(env: &Env, split: &Split, from: &Address, token: &Address, amount: i12
 }
 
 fn load(env: &Env, id: u64) -> Result<Split, Error> {
+    let key = DataKey::Split(id);
+    let split = env
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(Error::SplitNotFound)?;
     env.storage()
         .persistent()
-        .get(&DataKey::Split(id))
-        .ok_or(Error::SplitNotFound)
+        .extend_ttl(&key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    Ok(split)
 }
 
 #[cfg(test)]

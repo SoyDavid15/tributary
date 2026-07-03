@@ -3,6 +3,7 @@ import {
   requestAccess,
   signTransaction,
   isConnected,
+  getNetworkDetails,
 } from "@stellar/freighter-api";
 
 export const RPC_URL = "https://soroban-testnet.stellar.org";
@@ -36,6 +37,12 @@ export async function connectWallet(): Promise<string> {
   }
   const access = await requestAccess();
   if (access.error) throw new Error(access.error);
+  const details = await getNetworkDetails();
+  if (!details.error && details.network !== "TESTNET") {
+    throw new Error(
+      `Freighter is on ${details.network}. Switch it to Testnet and connect again.`,
+    );
+  }
   return access.address;
 }
 

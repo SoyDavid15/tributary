@@ -11,7 +11,9 @@
 
 ### App
 - Create, pay, escrow and manage splits against testnet with Freighter
+- Pay and escrow in XLM or USDC
 - Per-recipient payout preview and recent on-chain activity feed
+- Expandable split details with full addresses and escrow balances
 - Live at https://tributary-omega.vercel.app
 
 ### SDK

@@ -60,6 +60,13 @@ Early days. The core contract works, is tested and runs on testnet, but it is no
 | --- | --- |
 | Testnet | `CCZXVZUQIZT673QF6ZGLI5AJLEPWUFWVYOPIOJNLNIOO5NI27V4JGJUU` |
 
+## Try it in two minutes
+
+1. Install the [Freighter](https://freighter.app) extension and switch it to Testnet.
+2. Fund your account for free at [friendbot](https://lab.stellar.org/account/fund?$=network$id=testnet).
+3. Open [tributary-omega.vercel.app](https://tributary-omega.vercel.app), connect, and create a split from the Create tab.
+4. Pay through it from the Pay tab and watch both balances land in one transaction.
+
 ## Development
 
 You need stable Rust with the `wasm32v1-none` target (the checked-in `rust-toolchain.toml` sets this up automatically).

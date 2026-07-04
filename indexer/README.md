@@ -30,4 +30,12 @@ Environment variables, all optional:
 | `STATE` | `state.json` | cursor file |
 | `POLL_MS` | `10000` | poll interval |
 
+## CSV export
+
+For spreadsheets or accounting, convert the log to CSV:
+
+```
+node export-csv.mjs > events.csv
+```
+
 Note that public RPC only retains about a week of events. For a full history from genesis, run against your own RPC with extended retention, or start the indexer early and keep it running.

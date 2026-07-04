@@ -20,3 +20,6 @@
 
 ### SDK
 - Generated TypeScript client (`tributary-sdk`), pre-wired to the testnet deployment
+
+### Indexer
+- Standalone poller that follows contract events into an ndjson log with cursor persistence

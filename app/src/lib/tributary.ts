@@ -119,24 +119,33 @@ export function tokenCode(contract: string | undefined): string {
 export async function fetchActivity(limit = 12): Promise<ActivityItem[]> {
   const server = new rpc.Server(RPC_URL);
   const latest = await server.getLatestLedger();
+  const filters = [
+    { type: "contract" as const, contractIds: [CONTRACT_ID] },
+  ];
 
-  async function query(lookback: number) {
-    return server.getEvents({
-      startLedger: Math.max(1, latest.sequence - lookback),
-      filters: [{ type: "contract", contractIds: [CONTRACT_ID] }],
-      limit: 100,
-    });
-  }
-
-  let res;
-  try {
-    res = await query(100_000);
-  } catch {
-    res = await query(5_000);
+  // getEvents scans at most ~10k ledgers per call, so stay inside one
+  // window and page the cursor until we reach the chain head.
+  const events = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 6; page++) {
+    const res = await server.getEvents(
+      cursor
+        ? { cursor, filters, limit: 100 }
+        : {
+            startLedger: Math.max(1, latest.sequence - 9_900),
+            filters,
+            limit: 100,
+          },
+    );
+    events.push(...res.events);
+    if (!res.cursor || res.cursor === cursor) break;
+    cursor = res.cursor;
+    const cursorLedger = Number(BigInt(cursor.split("-")[0]) >> 32n);
+    if (res.events.length < 100 && cursorLedger >= res.latestLedger) break;
   }
 
   const items: ActivityItem[] = [];
-  for (const ev of res.events) {
+  for (const ev of events) {
     let type: unknown;
     let id: unknown;
     let amount: bigint | undefined;

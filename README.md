@@ -71,7 +71,7 @@ Early days. The core contract works, is tested and runs on testnet, but it is no
 
 You need stable Rust with the `wasm32v1-none` target (the checked-in `rust-toolchain.toml` sets this up automatically).
 
-```
+```bash 
 cargo test
 cargo build --release --target wasm32v1-none -p tributary-splitter
 ```

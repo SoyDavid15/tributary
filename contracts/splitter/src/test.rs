@@ -625,35 +625,95 @@ fn immutable_split_cannot_be_updated() {
 
 #[test]
 fn property_conservation_random_shares() {
-    proptest::prop_assert!(proptest::test_runner::TestRunner::default().run(&(
-        proptest::collection::vec(1u32..=10_000u32, 2..10usize),
-        1i128..1_000_000i128,
-    ), |(shares, amount)| {
-        // Setup environment
-        let env = soroban_sdk::Env::default();
-        env.mock_all_auths();
-        let contract_id = env.register(Splitter, ());
-        let client = SplitterClient::new(&env, &contract_id);
-        let creator = soroban_sdk::Address::generate(&env);
-        // Generate recipients matching shares length
-        let mut recipients = soroban_sdk::vec![&env];
-        let mut addrs = Vec::new();
-        for _ in shares.iter() {
-            let addr = soroban_sdk::Address::generate(&env);
-            recipients.push_back(acct(&addr));
-            addrs.push(addr);
-        }
-        // Create split and pay
-        let id = client.create_split(&creator, &recipients, &shares, &None);
-        let payer = soroban_sdk::Address::generate(&env);
-        let (token_id, token_client) = fund_token(&env, &payer, amount);
-        client.pay(&payer, &id, &token_id, &amount);
-        // Sum balances and assert conservation
-        let mut received: i128 = 0;
-        for addr in addrs.iter() {
-            received += token_client.balance(&addr);
-        }
-        prop_assert_eq!(received, amount);
-        Ok(())
-    }).is_ok());
+    proptest::prop_assert!(
+        proptest::test_runner::TestRunner::default()
+            .run(
+                &(
+                    proptest::collection::vec(1u32..=10_000u32, 2..10usize),
+                    1i128..1_000_000i128,
+                ),
+                |(shares, amount)| {
+                    // Setup environment
+                    let env = soroban_sdk::Env::default();
+                    env.mock_all_auths();
+                    let contract_id = env.register(Splitter, ());
+                    let client = SplitterClient::new(&env, &contract_id);
+                    let creator = soroban_sdk::Address::generate(&env);
+
+                    // Generate recipients matching shares length
+                    let mut recipients = soroban_sdk::vec![&env];
+                    let mut addrs = Vec::new();
+                    for _ in shares.iter() {
+                        let addr = soroban_sdk::Address::generate(&env);
+                        recipients.push_back(acct(&addr));
+                        addrs.push(addr);
+                    }
+
+                    // Create split and pay
+                    let id = client.create_split(&creator, &recipients, &shares, &None);
+                    let payer = soroban_sdk::Address::generate(&env);
+                    let (token_id, token_client) = fund_token(&env, &payer, amount);
+                    client.pay(&payer, &id, &token_id, &amount);
+
+                    // Sum balances and assert conservation
+                    let mut received: i128 = 0;
+                    for addr in addrs.iter() {
+                        received += token_client.balance(&addr);
+                    }
+                    prop_assert_eq!(received, amount);
+                    Ok(())
+                },
+            )
+            .is_ok()
+    );
+}
+
+// Regression for #42: a high-supply token can be paid an amount large enough
+// that `amount * share` overflows i128 in the old share math. The intermediate
+// must be computed in 256-bit space so the split stays panic- and wrap-free and
+// amount-in always equals amount-out.
+#[test]
+fn large_payment_does_not_overflow_share_math() {
+    let s = setup();
+    let creator = Address::generate(&s.env);
+    let a = Address::generate(&s.env);
+    let b = Address::generate(&s.env);
+    let c = Address::generate(&s.env);
+
+    // Large enough that `amount * share` would overflow i128 for any share > 100,
+    // but each recipient's final slice still fits comfortably in i128.
+    let amount: i128 = i128::MAX / 100;
+    let payer = Address::generate(&s.env);
+    let (token_id, token_client) = fund_token(&s.env, &payer, amount);
+
+    let id = s.client.create_split(
+        &creator,
+        &vec![&s.env, acct(&a), acct(&b), acct(&c)],
+        &vec![&s.env, 5_000, 3_000, 2_000],
+        &None,
+    );
+
+    // Must not panic or wrap; the call returning is the first assertion.
+    s.client.pay(&payer, &id, &token_id, &amount);
+
+    // Each non-last recipient gets `amount * share / 10000` truncated; the last
+    // recipient absorbs the rounding dust.
+    let expected = |share: i128| -> i128 {
+        soroban_sdk::I256::from_i128(&s.env, amount)
+            .mul(&soroban_sdk::I256::from_i128(&s.env, share))
+            .div(&soroban_sdk::I256::from_i128(&s.env, 10_000))
+            .to_i128()
+            .unwrap()
+    };
+
+    let a_bal = token_client.balance(&a);
+    let b_bal = token_client.balance(&b);
+    let c_bal = token_client.balance(&c);
+
+    assert_eq!(a_bal, expected(5_000));
+    assert_eq!(b_bal, expected(3_000));
+    assert_eq!(c_bal, amount - a_bal - b_bal);
+    assert_eq!(a_bal + b_bal + c_bal, amount);
+    assert_eq!(token_client.balance(&payer), 0);
+}
 }

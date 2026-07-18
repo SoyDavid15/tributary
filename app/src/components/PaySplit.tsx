@@ -125,6 +125,7 @@ export default function PaySplit({
         </ul>
       )}
       <button disabled={busy || !!amountError} onClick={submit}>
+        {busy && <span className="btn-spinner" />}
         {busy ? t("waitingForSignature") : t("payButton")}
       </button>
       {message && <p className="note">{message}</p>}
